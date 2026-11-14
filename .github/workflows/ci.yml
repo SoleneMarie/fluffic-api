@@ -1,4 +1,4 @@
-name: Fluffic Frontend CI
+name: Fluffic Backend CI
 
 on:
   push:
