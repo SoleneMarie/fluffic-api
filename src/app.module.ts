@@ -2,6 +2,9 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AnimalsModule } from './animals/animals.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
@@ -22,6 +25,9 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         logging: process.env.NODE_ENV === 'development',
       }),
     }),
+
+    AnimalsModule,
+    OrganizationsModule,
   ],
 })
 export class AppModule {}
