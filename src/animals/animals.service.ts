@@ -4,7 +4,6 @@ import { Repository } from 'typeorm';
 
 import { CreateAnimalDto } from './dto/create-animal.dto';
 import { Animal } from './entities/animal.entity';
-
 @Injectable()
 export class AnimalsService {
   constructor(

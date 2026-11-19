@@ -4,6 +4,8 @@ import {
   IsArray,
   IsBoolean,
   IsDate,
+  IsDefined,
+  isDefined,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -56,10 +58,12 @@ export class CreateAnimalDto {
   @Min(0)
   adoptionFee: number;
 
+  @IsDefined()
   @ValidateNested()
   @Type(() => AnimalLocationDto)
   location: AnimalLocationDto;
 
+  @IsDefined()
   @ValidateNested()
   @Type(() => AnimalProfileDto)
   profile: AnimalProfileDto;
