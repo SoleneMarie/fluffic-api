@@ -7,7 +7,7 @@
     "isolatedModules": true,
     "declaration": true,
     "removeComments": true,
-    "emitDecoratorMetadata": true,
+    "emitDecoratorMetadata": true, // import reflect-metadata in data-source.ts (TypeORM utilise les métadonnées)
     "experimentalDecorators": true,
     "allowSyntheticDefaultImports": true,
     "target": "ES2023",
