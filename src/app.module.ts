@@ -9,6 +9,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
 
     TypeOrmModule.forRootAsync({
@@ -21,7 +22,7 @@ import { OrganizationsModule } from './organizations/organizations.module';
         password: configService.get<string>('DB_PASS'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: process.env.NODE_ENV === 'test',
         logging: process.env.NODE_ENV === 'development',
       }),
     }),

@@ -5,7 +5,6 @@ import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
 import { Animal } from '../animals/entities/animal.entity';
-import { CreateOrganizationDto } from './dto/create-organization.dto';
 import { Organization } from './entities/organization.entity';
 import { OrganizationsService } from './organizations.service';
 
