@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { Organization } from '../organizations/entities/organization.entity';
 import { AnimalsService } from './animals.service';
 import { CreateAnimalDto } from './dto/create-animal.dto';
 import { Animal } from './entities/animal.entity';
@@ -16,6 +17,10 @@ describe('AnimalsService', () => {
     findOneBy: jest.fn(),
   };
 
+  const mockOrganizationRepository = {
+    findOneBy: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -25,6 +30,10 @@ describe('AnimalsService', () => {
         {
           provide: getRepositoryToken(Animal),
           useValue: mockAnimalRepository,
+        },
+        {
+          provide: getRepositoryToken(Organization),
+          useValue: mockOrganizationRepository,
         },
       ],
     }).compile();
@@ -74,31 +83,58 @@ describe('AnimalsService', () => {
       description: 'Une adorable lapine',
     } as CreateAnimalDto;
 
+    const organizationId = 1;
+
+    const organization = {
+      id: organizationId,
+      name: 'Les Grandes Oreilles',
+    } as Organization;
+
     const animal = {
       id: 1,
       name: 'Poupette',
       description: 'Une adorable lapine',
       adopted: false,
       deleted: false,
-      organization: { id: 1 },
+      organization,
     } as Animal;
 
-    const organizationId = 1;
+    mockOrganizationRepository.findOneBy.mockResolvedValue(organization);
     mockAnimalRepository.create.mockReturnValue(animal);
     mockAnimalRepository.save.mockResolvedValue(animal);
 
     const result = await service.create(createAnimalDto, organizationId);
 
+    expect(mockOrganizationRepository.findOneBy).toHaveBeenCalledWith({
+      id: organizationId,
+    });
+
     expect(mockAnimalRepository.create).toHaveBeenCalledWith({
       ...createAnimalDto,
       adopted: false,
       deleted: false,
-      organization: { id: organizationId },
+      organization,
     });
 
     expect(mockAnimalRepository.save).toHaveBeenCalledTimes(1);
     expect(mockAnimalRepository.save).toHaveBeenCalledWith(animal);
 
     expect(result).toEqual(animal);
+  });
+
+  it('should throw NotFoundException if organization does not exist', async () => {
+    const createAnimalDto = {
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+    } as CreateAnimalDto;
+
+    mockOrganizationRepository.findOneBy.mockResolvedValue(null);
+
+    await expect(service.create(createAnimalDto, 999)).rejects.toThrow(
+      NotFoundException,
+    );
+
+    expect(mockAnimalRepository.create).not.toHaveBeenCalled();
+    expect(mockAnimalRepository.save).not.toHaveBeenCalled();
   });
 });
