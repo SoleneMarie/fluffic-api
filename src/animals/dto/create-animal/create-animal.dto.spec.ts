@@ -79,7 +79,7 @@ describe('CreateAnimalDto', () => {
 
   it('should reject tags when the value is not an array', async () => {
     const dto = plainToInstance(CreateAnimalDto, {
-      tags: 'affectionate',
+      tags: JSON.stringify('affectionate'),
     });
 
     const errors = await validate(dto);

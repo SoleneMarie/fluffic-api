@@ -4,6 +4,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken, TypeOrmModule } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import {
   AnimalGenders,
   AnimalSpecies,
@@ -72,7 +73,16 @@ describe('AnimalsService (integration)', () => {
 
         TypeOrmModule.forFeature([Animal, Organization]),
       ],
-      providers: [AnimalsService],
+      providers: [
+        AnimalsService,
+        {
+          provide: CloudinaryService,
+          useValue: {
+            uploadImage: jest.fn(),
+            deleteImage: jest.fn(),
+          },
+        },
+      ],
     }).compile();
 
     animalsService = module.get<AnimalsService>(AnimalsService);
@@ -106,10 +116,13 @@ describe('AnimalsService (integration)', () => {
   });
 
   it('should create an animal and associate it with an organization', async () => {
-    const animal = await animalsService.create(
+    const result = await animalsService.create(
       animalData as CreateAnimalDto,
+      [],
       organization.id,
     );
+
+    const animal = result.animal;
 
     expect(animal.id).toBeDefined();
     expect(animal.name).toBe('Biscotte');
@@ -129,7 +142,7 @@ describe('AnimalsService (integration)', () => {
 
   it('should throw NotFoundException if organization does not exist', async () => {
     await expect(
-      animalsService.create(animalData as CreateAnimalDto, 999),
+      animalsService.create(animalData as CreateAnimalDto, [], 999),
     ).rejects.toThrow(NotFoundException);
 
     const animals = await animalRepository.find();
