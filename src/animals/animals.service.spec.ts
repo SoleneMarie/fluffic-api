@@ -2,6 +2,7 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import {
   AnimalGenders,
   AnimalSpecies,
@@ -31,6 +32,11 @@ describe('AnimalsService', () => {
     getMany: jest.fn(),
   };
 
+  const mockCloudinaryService = {
+    uploadImage: jest.fn(),
+    deleteImage: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
 
@@ -47,6 +53,10 @@ describe('AnimalsService', () => {
         {
           provide: getRepositoryToken(Organization),
           useValue: mockOrganizationRepository,
+        },
+        {
+          provide: CloudinaryService,
+          useValue: mockCloudinaryService,
         },
       ],
     }).compile();
@@ -221,7 +231,7 @@ describe('AnimalsService', () => {
     mockAnimalRepository.create.mockReturnValue(animal);
     mockAnimalRepository.save.mockResolvedValue(animal);
 
-    const result = await service.create(createAnimalDto, organizationId);
+    const result = await service.create(createAnimalDto, [], organizationId);
 
     expect(mockOrganizationRepository.findOneBy).toHaveBeenCalledWith({
       id: organizationId,
@@ -234,10 +244,192 @@ describe('AnimalsService', () => {
       organization,
     });
 
-    expect(mockAnimalRepository.save).toHaveBeenCalledTimes(1);
-    expect(mockAnimalRepository.save).toHaveBeenCalledWith(animal);
+    expect(mockAnimalRepository.save).toHaveBeenCalledTimes(2);
 
-    expect(result).toEqual(animal);
+    expect(mockAnimalRepository.save).toHaveBeenNthCalledWith(1, animal);
+    expect(mockAnimalRepository.save).toHaveBeenNthCalledWith(2, animal);
+
+    expect(mockCloudinaryService.uploadImage).not.toHaveBeenCalled();
+
+    expect(result).toEqual({
+      animal,
+      failedUploadsCount: 0,
+    });
+  });
+
+  it('should create an animal with images', async () => {
+    const createAnimalDto = {
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+    } as CreateAnimalDto;
+
+    const organizationId = 1;
+
+    const organization = {
+      id: organizationId,
+      name: 'Les Grandes Oreilles',
+    } as Organization;
+
+    const animal = {
+      id: 1,
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+      adopted: false,
+      deleted: false,
+      organization,
+    } as Animal;
+
+    const file = {
+      buffer: Buffer.from('fake image'),
+    } as Express.Multer.File;
+
+    const uploadedImage = {
+      url: 'https://res.cloudinary.com/test/image.jpg',
+      publicId: 'fluffic/organizations/1/animals/1/image',
+    };
+
+    mockOrganizationRepository.findOneBy.mockResolvedValue(organization);
+    mockAnimalRepository.create.mockReturnValue(animal);
+    mockAnimalRepository.save.mockResolvedValue(animal);
+    mockCloudinaryService.uploadImage.mockResolvedValue(uploadedImage);
+
+    const result = await service.create(
+      createAnimalDto,
+      [file],
+      organizationId,
+    );
+
+    expect(mockCloudinaryService.uploadImage).toHaveBeenCalledWith(
+      file,
+      'fluffic/organizations/1/animals/1',
+    );
+
+    expect(mockAnimalRepository.save).toHaveBeenCalledTimes(2);
+
+    expect(result).toEqual({
+      animal: {
+        ...animal,
+        images: [uploadedImage],
+      },
+      failedUploadsCount: 0,
+    });
+  });
+
+  it('should create an animal even if an image upload fails', async () => {
+    const createAnimalDto = {
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+    } as CreateAnimalDto;
+
+    const organizationId = 1;
+
+    const organization = {
+      id: organizationId,
+      name: 'Les Grandes Oreilles',
+    } as Organization;
+
+    const animal = {
+      id: 1,
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+      adopted: false,
+      deleted: false,
+      organization,
+    } as Animal;
+
+    const file = {
+      buffer: Buffer.from('fake image'),
+    } as Express.Multer.File;
+
+    mockOrganizationRepository.findOneBy.mockResolvedValue(organization);
+    mockAnimalRepository.create.mockReturnValue(animal);
+    mockAnimalRepository.save.mockResolvedValue(animal);
+
+    mockCloudinaryService.uploadImage.mockRejectedValueOnce(
+      new Error('Cloudinary upload failed'),
+    );
+
+    const result = await service.create(
+      createAnimalDto,
+      [file],
+      organizationId,
+    );
+
+    expect(mockCloudinaryService.uploadImage).toHaveBeenCalledWith(
+      file,
+      'fluffic/organizations/1/animals/1',
+    );
+
+    expect(mockAnimalRepository.save).toHaveBeenCalledTimes(2);
+
+    expect(result).toEqual({
+      animal: {
+        ...animal,
+        images: [],
+      },
+      failedUploadsCount: 1,
+    });
+
+    expect(mockCloudinaryService.deleteImage).not.toHaveBeenCalled();
+  });
+
+  it('should delete uploaded images if saving the animal images fails', async () => {
+    const createAnimalDto = {
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+    } as CreateAnimalDto;
+
+    const organizationId = 1;
+
+    const organization = {
+      id: organizationId,
+      name: 'Les Grandes Oreilles',
+    } as Organization;
+
+    const animal = {
+      id: 1,
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+      adopted: false,
+      deleted: false,
+      organization,
+    } as Animal;
+
+    const file = {
+      buffer: Buffer.from('fake image'),
+    } as Express.Multer.File;
+
+    const uploadedImage = {
+      url: 'https://res.cloudinary.com/test/image.jpg',
+      publicId: 'fluffic/organizations/1/animals/1/image',
+    };
+
+    const databaseError = new Error('Database save failed');
+
+    mockOrganizationRepository.findOneBy.mockResolvedValue(organization);
+    mockAnimalRepository.create.mockReturnValue(animal);
+
+    mockAnimalRepository.save
+      .mockResolvedValueOnce(animal)
+      .mockRejectedValueOnce(databaseError);
+
+    mockCloudinaryService.uploadImage.mockResolvedValue(uploadedImage);
+    mockCloudinaryService.deleteImage.mockResolvedValue(undefined);
+
+    await expect(
+      service.create(createAnimalDto, [file], organizationId),
+    ).rejects.toThrow(databaseError);
+
+    expect(mockCloudinaryService.uploadImage).toHaveBeenCalledWith(
+      file,
+      'fluffic/organizations/1/animals/1',
+    );
+
+    expect(mockAnimalRepository.save).toHaveBeenCalledTimes(2);
+
+    expect(mockCloudinaryService.deleteImage).toHaveBeenCalledWith(
+      uploadedImage.publicId,
+    );
   });
 
   it('should throw NotFoundException if organization does not exist', async () => {
@@ -248,7 +440,7 @@ describe('AnimalsService', () => {
 
     mockOrganizationRepository.findOneBy.mockResolvedValue(null);
 
-    await expect(service.create(createAnimalDto, 999)).rejects.toThrow(
+    await expect(service.create(createAnimalDto, [], 999)).rejects.toThrow(
       NotFoundException,
     );
 

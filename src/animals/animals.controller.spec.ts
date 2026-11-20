@@ -41,7 +41,7 @@ describe('AnimalsController', () => {
     ] as Animal[];
 
     mockAnimalsService.findAll.mockResolvedValue(animals);
-    const result = await controller.findAll();
+    const result = await controller.findAll({});
 
     expect(mockAnimalsService.findAll).toHaveBeenCalledTimes(1);
     expect(result).toEqual(animals);
@@ -84,9 +84,47 @@ describe('AnimalsController', () => {
 
     mockAnimalsService.create.mockResolvedValue(animal);
 
-    const result = await controller.create(createAnimalDto);
+    const result = await controller.create(createAnimalDto, []);
 
-    expect(mockAnimalsService.create).toHaveBeenCalledWith(createAnimalDto, 1);
+    expect(mockAnimalsService.create).toHaveBeenCalledWith(
+      createAnimalDto,
+      [],
+      1,
+    );
     expect(result).toEqual(animal);
+  });
+
+  it('should pass uploaded images to the service when creating an animal', async () => {
+    const createAnimalDto = {
+      name: 'Poupette',
+      description: 'Une adorable lapine',
+    } as CreateAnimalDto;
+
+    const files = [
+      { originalname: 'photo1.jpg' },
+      { originalname: 'photo2.jpg' },
+    ] as Express.Multer.File[];
+
+    const animal = {
+      id: 1,
+      name: 'Poupette',
+    } as Animal;
+
+    const response = {
+      animal,
+      failedUploadsCount: 0,
+    };
+
+    mockAnimalsService.create.mockResolvedValue(response);
+
+    const result = await controller.create(createAnimalDto, files);
+
+    expect(mockAnimalsService.create).toHaveBeenCalledWith(
+      createAnimalDto,
+      files,
+      1,
+    );
+
+    expect(result).toEqual(response);
   });
 });

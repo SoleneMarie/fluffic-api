@@ -2,10 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 
+import { CloudinaryService } from '../cloudinary/cloudinary.service';
 import { Organization } from '../organizations/entities/organization.entity';
 import { CreateAnimalDto } from './dto/create-animal/create-animal.dto';
 import { SearchAnimalsDto } from './dto/search-animal/search-animals.dto';
 import { Animal } from './entities/animal.entity';
+import { TCreateAnimalResponse } from './types';
 
 @Injectable()
 export class AnimalsService {
@@ -14,12 +16,14 @@ export class AnimalsService {
     private readonly animalRepository: Repository<Animal>,
     @InjectRepository(Organization)
     private readonly organizationRepository: Repository<Organization>,
+    private readonly cloudinaryService: CloudinaryService,
   ) {}
 
   async create(
     createAnimalDto: CreateAnimalDto,
+    files: Express.Multer.File[],
     organizationId: number,
-  ): Promise<Animal> {
+  ): Promise<TCreateAnimalResponse> {
     const organization = await this.organizationRepository.findOneBy({
       id: organizationId,
     });
@@ -34,7 +38,42 @@ export class AnimalsService {
       deleted: false,
       organization,
     });
-    return this.animalRepository.save(animal);
+
+    const savedAnimal = await this.animalRepository.save(animal);
+
+    const cloudinaryFolder = `fluffic/organizations/${organizationId}/animals/${savedAnimal.id}`;
+
+    const uploadResults = await Promise.allSettled(
+      files.map((file) =>
+        this.cloudinaryService.uploadImage(file, cloudinaryFolder),
+      ),
+    );
+
+    const uploadedImages = uploadResults
+      .filter((result) => result.status === 'fulfilled')
+      .map((result) => result.value);
+
+    const failedUploadsCount = uploadResults.filter(
+      (result) => result.status === 'rejected',
+    ).length;
+
+    savedAnimal.images = uploadedImages;
+
+    try {
+      const updatedAnimal = await this.animalRepository.save(savedAnimal);
+      return {
+        animal: updatedAnimal,
+        failedUploadsCount,
+      };
+    } catch (error) {
+      await Promise.allSettled(
+        uploadedImages.map((image) =>
+          this.cloudinaryService.deleteImage(image.publicId),
+        ),
+      );
+
+      throw error;
+    }
   }
 
   async findAll(filters: SearchAnimalsDto): Promise<Animal[]> {

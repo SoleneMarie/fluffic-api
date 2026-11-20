@@ -5,6 +5,7 @@ import request from 'supertest';
 import { Repository } from 'typeorm';
 
 import { AppModule } from '../src/app.module';
+import { CloudinaryService } from '../src/cloudinary/cloudinary.service';
 import { configureApp } from '../src/common/config/configure-app';
 import { Organization } from '../src/organizations/entities/organization.entity';
 
@@ -16,7 +17,13 @@ describe('Organizations (e2e)', () => {
   beforeAll(async () => {
     const moduleFixture: TestingModule = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(CloudinaryService)
+      .useValue({
+        uploadImage: jest.fn(),
+        deleteImage: jest.fn(),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
 

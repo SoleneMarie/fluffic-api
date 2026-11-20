@@ -1,4 +1,4 @@
-import { Type } from 'class-transformer';
+import { plainToInstance, Transform, Type } from 'class-transformer';
 import {
   ArrayUnique,
   IsArray,
@@ -42,28 +42,70 @@ export class CreateAnimalDto {
   @IsDate()
   dateOfBirth: Date;
 
+  @Transform(({ value }) => {
+    if (typeof value !== 'string') {
+      return value;
+    }
+
+    return JSON.parse(value);
+  })
   @IsArray()
   @ArrayUnique()
   @IsEnum(AnimalTags, { each: true })
   tags: AnimalTags[];
 
+  @Transform(({ value }) => {
+    if (value === 'true') {
+      return true;
+    }
+
+    if (value === 'false') {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   vaccinated: boolean;
 
+  @Transform(({ value }) => {
+    if (value === 'true') {
+      return true;
+    }
+
+    if (value === 'false') {
+      return false;
+    }
+
+    return value;
+  })
   @IsBoolean()
   sterilized: boolean;
 
+  @Type(() => Number)
   @IsInt()
   @Min(0)
   adoptionFee: number;
 
   @IsDefined()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return plainToInstance(AnimalLocationDto, JSON.parse(value));
+    }
+
+    return plainToInstance(AnimalLocationDto, value);
+  })
   @ValidateNested()
-  @Type(() => AnimalLocationDto)
   location: AnimalLocationDto;
 
   @IsDefined()
+  @Transform(({ value }) => {
+    if (typeof value === 'string') {
+      return plainToInstance(AnimalProfileDto, JSON.parse(value));
+    }
+
+    return plainToInstance(AnimalProfileDto, value);
+  })
   @ValidateNested()
-  @Type(() => AnimalProfileDto)
   profile: AnimalProfileDto;
 }

@@ -1,9 +1,5 @@
-import {
-  IsNotEmpty,
-  IsNumber,
-  IsString,
-  MaxLength,
-} from 'class-validator';
+import { Type } from 'class-transformer';
+import { IsNotEmpty, IsNumber, IsString, MaxLength } from 'class-validator';
 
 export class AnimalLocationDto {
   @IsString()
@@ -16,9 +12,11 @@ export class AnimalLocationDto {
   @IsNotEmpty()
   postalCode: string;
 
+  @Type(() => Number)
   @IsNumber()
   lat: number;
 
+  @Type(() => Number)
   @IsNumber()
   lon: number;
 }

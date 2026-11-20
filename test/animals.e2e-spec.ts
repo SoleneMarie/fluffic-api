@@ -6,6 +6,7 @@ import { Repository } from 'typeorm';
 
 import { Animal } from '../src/animals/entities/animal.entity';
 import { AppModule } from '../src/app.module';
+import { CloudinaryService } from '../src/cloudinary/cloudinary.service';
 import { configureApp } from '../src/common/config/configure-app';
 import {
   AnimalGenders,
@@ -22,6 +23,7 @@ import { Organization } from '../src/organizations/entities/organization.entity'
  * - Ajouter des tests E2E pour la création d'un animal par un utilisateur authentifié.
  * - Vérifier qu'un utilisateur non authentifié ne peut pas créer d'animal.
  * - Vérifier qu'un animal est toujours associé à l'organisation de l'utilisateur authentifié.
+ * - Vérifier la création d'un animal avec et sans images
  */
 
 describe('Animals (e2e)', () => {
@@ -59,9 +61,15 @@ describe('Animals (e2e)', () => {
   };
 
   beforeAll(async () => {
-    const moduleFixture: TestingModule = await Test.createTestingModule({
+    const moduleFixture = await Test.createTestingModule({
       imports: [AppModule],
-    }).compile();
+    })
+      .overrideProvider(CloudinaryService)
+      .useValue({
+        uploadImage: jest.fn(),
+        deleteImage: jest.fn(),
+      })
+      .compile();
 
     app = moduleFixture.createNestApplication();
     configureApp(app);

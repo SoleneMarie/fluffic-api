@@ -6,6 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
+import { TCloudinaryImage } from '../../cloudinary/types/cloudinary-image-type';
 import {
   AnimalGenders,
   AnimalSpecies,
@@ -25,6 +26,12 @@ export class Animal {
 
   @Column({ type: 'text' })
   description: string;
+
+  @Column({
+    type: 'jsonb',
+    default: [],
+  })
+  images: TCloudinaryImage[] = [];
 
   @Column({ type: 'enum', enum: AnimalSpecies })
   species: AnimalSpecies;
