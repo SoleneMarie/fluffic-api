@@ -52,6 +52,28 @@ jobs:
     name: FluffTest
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgis/postgis:18-3.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: test_password_only
+          POSTGRES_DB: fluffic_api_test
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d fluffic_api_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DB_HOST: localhost
+      DB_PORT: 5433
+      DB_USER: postgres
+      DB_PASS: test_password_only
+      DB_NAME: fluffic_api_test
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v6
@@ -64,6 +86,15 @@ jobs:
 
       - name: Install dependencies
         run: npm ci
+
+      - name: Enable PostGIS
+        run: |
+          PGPASSWORD=test_password_only psql \
+            -h localhost \
+            -p 5433 \
+            -U postgres \
+            -d fluffic_api_test \
+            -c "CREATE EXTENSION IF NOT EXISTS postgis;"
 
       - name: Run tests
         run: npm test

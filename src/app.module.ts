@@ -2,10 +2,14 @@ import { Module } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
+import { AnimalsModule } from './animals/animals.module';
+import { OrganizationsModule } from './organizations/organizations.module';
+
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
+      envFilePath: process.env.NODE_ENV === 'test' ? '.env.test' : '.env',
     }),
 
     TypeOrmModule.forRootAsync({
@@ -18,10 +22,13 @@ import { TypeOrmModule } from '@nestjs/typeorm';
         password: configService.get<string>('DB_PASS'),
         database: configService.get<string>('DB_NAME'),
         autoLoadEntities: true,
-        synchronize: false,
+        synchronize: process.env.NODE_ENV === 'test',
         logging: process.env.NODE_ENV === 'development',
       }),
     }),
+
+    AnimalsModule,
+    OrganizationsModule,
   ],
 })
 export class AppModule {}
