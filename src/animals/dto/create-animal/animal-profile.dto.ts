@@ -1,6 +1,6 @@
 import { IsArray, IsBoolean, IsEnum, IsInt, Max, Min } from 'class-validator';
 
-import { AnimalSpecies } from '../../enums/animals-enums';
+import { AnimalSpecies } from '../../../enums/animals-enums';
 import {
   BudgetScore,
   EnergyScore,
@@ -8,7 +8,7 @@ import {
   LifestyleScore,
   LivingSpaceScore,
   TimeCommitmentScore,
-} from '../../enums/shared-enums';
+} from '../../../enums/shared-enums';
 
 export class AnimalProfileDto {
   @IsInt()

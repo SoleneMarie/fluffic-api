@@ -11,7 +11,7 @@ import {
 } from '../enums/animals-enums';
 import { Organization } from '../organizations/entities/organization.entity';
 import { AnimalsService } from './animals.service';
-import { CreateAnimalDto } from './dto/create-animal.dto';
+import { CreateAnimalDto } from './dto/create-animal/create-animal.dto';
 import { Animal } from './entities/animal.entity';
 
 describe('AnimalsService (integration)', () => {
@@ -155,7 +155,7 @@ describe('AnimalsService (integration)', () => {
 
     await animalRepository.save([animal1, animal2]);
 
-    const animals = await animalsService.findAll();
+    const animals = await animalsService.findAll({});
 
     expect(animals).toHaveLength(2);
     expect(animals.map((animal) => animal.name)).toEqual([
@@ -165,9 +165,136 @@ describe('AnimalsService (integration)', () => {
   });
 
   it('should return an empty array if no animals exist', async () => {
-    const animals = await animalsService.findAll();
+    const animals = await animalsService.findAll({});
 
     expect(animals).toEqual([]);
+  });
+
+  it('should filter animals by species', async () => {
+    const rabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const cat = animalRepository.create({
+      ...animalData,
+      name: 'Minette',
+      species: AnimalSpecies.CAT,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([rabbit, cat]);
+
+    const animals = await animalsService.findAll({
+      species: [AnimalSpecies.RABBIT],
+    });
+
+    expect(animals).toHaveLength(1);
+    expect(animals[0].name).toBe('Biscotte');
+  });
+
+  it('should filter animals by tags', async () => {
+    const calmRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      tags: [AnimalTags.CALM, AnimalTags.CUDDLY],
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const energeticRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Caramel',
+      tags: [AnimalTags.ENERGETIC],
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([calmRabbit, energeticRabbit]);
+
+    const animals = await animalsService.findAll({
+      tags: [AnimalTags.CALM],
+    });
+
+    expect(animals).toHaveLength(1);
+    expect(animals[0].name).toBe('Biscotte');
+  });
+
+  it('should filter animals by gender', async () => {
+    const femaleRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      gender: AnimalGenders.FEMALE,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const maleRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Caramel',
+      gender: AnimalGenders.MALE,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([femaleRabbit, maleRabbit]);
+
+    const animals = await animalsService.findAll({
+      gender: AnimalGenders.FEMALE,
+    });
+
+    expect(animals).toHaveLength(1);
+    expect(animals[0].name).toBe('Biscotte');
+  });
+
+  it('should filter animals by geographic radius', async () => {
+    const nearbyRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      location: {
+        city: 'Toulon',
+        postalCode: '83000',
+        lat: 43.1242,
+        lon: 5.928,
+      },
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const distantRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Caramel',
+      location: {
+        city: 'Marseille',
+        postalCode: '13000',
+        lat: 43.2965,
+        lon: 5.3698,
+      },
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([nearbyRabbit, distantRabbit]);
+
+    const animals = await animalsService.findAll({
+      latitude: 43.1242,
+      longitude: 5.928,
+      radiusMeters: 1000,
+    });
+
+    expect(animals).toHaveLength(1);
+    expect(animals[0].name).toBe('Biscotte');
   });
 
   it('should return an animal by id', async () => {

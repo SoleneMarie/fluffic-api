@@ -5,7 +5,7 @@ import {
   AnimalGenders,
   AnimalSpecies,
   AnimalTags,
-} from '../../enums/animals-enums';
+} from '../../../enums/animals-enums';
 import {
   BudgetScore,
   EnergyScore,
@@ -13,7 +13,7 @@ import {
   LifestyleScore,
   LivingSpaceScore,
   TimeCommitmentScore,
-} from '../../enums/shared-enums';
+} from '../../../enums/shared-enums';
 import { CreateAnimalDto } from './create-animal.dto';
 
 describe('CreateAnimalDto', () => {

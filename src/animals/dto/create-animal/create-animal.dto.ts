@@ -5,7 +5,6 @@ import {
   IsBoolean,
   IsDate,
   IsDefined,
-  isDefined,
   IsEnum,
   IsInt,
   IsNotEmpty,
@@ -19,7 +18,7 @@ import {
   AnimalGenders,
   AnimalSpecies,
   AnimalTags,
-} from '../../enums/animals-enums';
+} from '../../../enums/animals-enums';
 import { AnimalLocationDto } from './animal-location.dto';
 import { AnimalProfileDto } from './animal-profile.dto';
 

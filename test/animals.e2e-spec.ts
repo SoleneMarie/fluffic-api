@@ -128,6 +128,95 @@ describe('Animals (e2e)', () => {
     expect(response.body).toEqual([]);
   });
 
+  it('GET /animals - should filter animals by species and gender', async () => {
+    const rabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      species: AnimalSpecies.RABBIT,
+      gender: AnimalGenders.FEMALE,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const cat = animalRepository.create({
+      ...animalData,
+      name: 'Minette',
+      species: AnimalSpecies.CAT,
+      gender: AnimalGenders.FEMALE,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const maleRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Caramel',
+      species: AnimalSpecies.RABBIT,
+      gender: AnimalGenders.MALE,
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([rabbit, cat, maleRabbit]);
+
+    const response = await request(app.getHttpServer())
+      .get('/animals')
+      .query({
+        species: AnimalSpecies.RABBIT,
+        gender: AnimalGenders.FEMALE,
+      })
+      .expect(200);
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].name).toBe('Biscotte');
+  });
+
+  it('GET /animals - should filter animals by geographic radius', async () => {
+    const nearbyRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Biscotte',
+      location: {
+        city: 'Toulon',
+        postalCode: '83000',
+        lat: 43.1242,
+        lon: 5.928,
+      },
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    const distantRabbit = animalRepository.create({
+      ...animalData,
+      name: 'Caramel',
+      location: {
+        city: 'Marseille',
+        postalCode: '13000',
+        lat: 43.2965,
+        lon: 5.3698,
+      },
+      adopted: false,
+      deleted: false,
+      organization,
+    });
+
+    await animalRepository.save([nearbyRabbit, distantRabbit]);
+
+    const response = await request(app.getHttpServer())
+      .get('/animals')
+      .query({
+        latitude: 43.1242,
+        longitude: 5.928,
+        radiusMeters: 1000,
+      })
+      .expect(200);
+
+    expect(response.body).toHaveLength(1);
+    expect(response.body[0].name).toBe('Biscotte');
+  });
+
   it('GET /animals/:id - should return an animal by id', async () => {
     const animal = animalRepository.create({
       ...animalData,

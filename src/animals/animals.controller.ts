@@ -1,8 +1,9 @@
-import { Controller, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Param, ParseIntPipe, Query } from '@nestjs/common';
 import { Body, Get, Post } from '@nestjs/common';
 
 import { AnimalsService } from './animals.service';
-import { CreateAnimalDto } from './dto/create-animal.dto';
+import { CreateAnimalDto } from './dto/create-animal/create-animal.dto';
+import { SearchAnimalsDto } from './dto/search-animal/search-animals.dto';
 import { Animal } from './entities/animal.entity';
 
 @Controller('animals')
@@ -15,8 +16,8 @@ export class AnimalsController {
   }
 
   @Get()
-  findAll(): Promise<Animal[]> {
-    return this.animalsService.findAll();
+  findAll(@Query() filters: SearchAnimalsDto): Promise<Animal[]> {
+    return this.animalsService.findAll(filters);
   }
 
   @Get(':id')
