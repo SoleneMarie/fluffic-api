@@ -3,7 +3,7 @@ import { Test, TestingModule } from '@nestjs/testing';
 
 import { AnimalsController } from './animals.controller';
 import { AnimalsService } from './animals.service';
-import { CreateAnimalDto } from './dto/create-animal.dto';
+import { CreateAnimalDto } from './dto/create-animal/create-animal.dto';
 import { Animal } from './entities/animal.entity';
 
 describe('AnimalsController', () => {

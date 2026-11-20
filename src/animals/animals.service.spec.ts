@@ -2,9 +2,14 @@ import { NotFoundException } from '@nestjs/common';
 import { Test, TestingModule } from '@nestjs/testing';
 import { getRepositoryToken } from '@nestjs/typeorm';
 
+import {
+  AnimalGenders,
+  AnimalSpecies,
+  AnimalTags,
+} from '../enums/animals-enums';
 import { Organization } from '../organizations/entities/organization.entity';
 import { AnimalsService } from './animals.service';
-import { CreateAnimalDto } from './dto/create-animal.dto';
+import { CreateAnimalDto } from './dto/create-animal/create-animal.dto';
 import { Animal } from './entities/animal.entity';
 
 describe('AnimalsService', () => {
@@ -13,16 +18,24 @@ describe('AnimalsService', () => {
   const mockAnimalRepository = {
     create: jest.fn(),
     save: jest.fn(),
-    find: jest.fn(),
     findOneBy: jest.fn(),
+    createQueryBuilder: jest.fn(),
   };
 
   const mockOrganizationRepository = {
     findOneBy: jest.fn(),
   };
 
+  const mockQueryBuilder = {
+    andWhere: jest.fn(),
+    getMany: jest.fn(),
+  };
+
   beforeEach(async () => {
     jest.clearAllMocks();
+
+    mockQueryBuilder.andWhere.mockReturnThis();
+    mockAnimalRepository.createQueryBuilder.mockReturnValue(mockQueryBuilder);
 
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -51,11 +64,116 @@ describe('AnimalsService', () => {
       { id: 2, name: 'Oslo' },
     ] as Animal[];
 
-    mockAnimalRepository.find.mockResolvedValue(animals);
-    const result = await service.findAll();
+    mockQueryBuilder.getMany.mockResolvedValue(animals);
+    const result = await service.findAll({});
 
-    expect(mockAnimalRepository.find).toHaveBeenCalledTimes(1);
+    expect(mockAnimalRepository.createQueryBuilder).toHaveBeenCalledWith(
+      'animal',
+    );
+    expect(mockQueryBuilder.getMany).toHaveBeenCalledTimes(1);
     expect(result).toEqual(animals);
+  });
+
+  it('should not add any condition when no filters are provided', async () => {
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll({});
+
+    expect(mockQueryBuilder.andWhere).not.toHaveBeenCalled();
+    expect(mockQueryBuilder.getMany).toHaveBeenCalledTimes(1);
+  });
+
+  it('should filter animals by species', async () => {
+    const filters = {
+      species: [AnimalSpecies.CAT, AnimalSpecies.RABBIT],
+    };
+
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll(filters);
+
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'animal.species IN (:...species)',
+      {
+        species: filters.species,
+      },
+    );
+  });
+
+  it('should filter animals by tags', async () => {
+    const filters = {
+      tags: [AnimalTags.CALM, AnimalTags.CUDDLY],
+    };
+
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll(filters);
+
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'jsonb_exists_any(animal.tags, ARRAY[:...tags]::text[])',
+      {
+        tags: filters.tags,
+      },
+    );
+  });
+
+  it('should filter animals by gender', async () => {
+    const filters = {
+      gender: AnimalGenders.FEMALE,
+    };
+
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll(filters);
+
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
+      'animal.gender = :gender',
+      {
+        gender: filters.gender,
+      },
+    );
+  });
+
+  it('should filter animals by geographic radius', async () => {
+    const filters = {
+      latitude: 43.1242,
+      longitude: 5.928,
+      radiusMeters: 10000,
+    };
+
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll(filters);
+
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(1);
+
+    const [condition, parameters] = mockQueryBuilder.andWhere.mock.calls[0];
+
+    expect(condition).toContain('ST_DWithin');
+
+    expect(parameters).toEqual({
+      latitude: filters.latitude,
+      longitude: filters.longitude,
+      radiusMeters: filters.radiusMeters,
+    });
+  });
+
+  it('should combine multiple filters', async () => {
+    const filters = {
+      species: [AnimalSpecies.CAT],
+      tags: [AnimalTags.CALM],
+      gender: AnimalGenders.FEMALE,
+      latitude: 43.1242,
+      longitude: 5.928,
+      radiusMeters: 10000,
+    };
+
+    mockQueryBuilder.getMany.mockResolvedValue([]);
+
+    await service.findAll(filters);
+
+    expect(mockQueryBuilder.andWhere).toHaveBeenCalledTimes(4);
+    expect(mockQueryBuilder.getMany).toHaveBeenCalledTimes(1);
   });
 
   it('should return an animal by its id', async () => {
